@@ -1,0 +1,25 @@
+# Path budget: generated dependencies/cache only; zero submitted bytes from these paths.
+# Applies at every nesting level. dist/ is deliberately included in the deliverable.
+node_modules/
+.cache/
+.npm/
+.vite/
+*.tsbuildinfo
+# Disposable validation scaffolding; zero submitted bytes.
+/test/scratch/
+# Delivery evidence exception: /artifacts/ has a 1,048,576-byte path budget.
+# Include only these named records; all other contents remain excluded.
+!/artifacts/
+/artifacts/**
+!/artifacts/NOTICE.md
+!/artifacts/REFERENCE-LICENSES.txt
+!/artifacts/validation.md
+!/artifacts/interaction-results.json
+!/artifacts/axe-violations.json
+!/artifacts/design-probe.json
+!/artifacts/contrast-results.json
+!/artifacts/bundle-audit.json
+!/artifacts/screenshots/
+!/artifacts/screenshots/mobile-390.png
+!/artifacts/screenshots/desktop-1440.png
+!/artifacts/screenshots/keyboard-focus.png

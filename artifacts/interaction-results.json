@@ -1,0 +1,82 @@
+{
+  "results": [
+    {
+      "name": "First screen at 390: product, scene, and complete primary action",
+      "passed": true
+    },
+    {
+      "name": "Practice join, multiplier growth, bail, persistence, on-chain exclusion",
+      "passed": true
+    },
+    {
+      "name": "Practice run loses on idle and can restart",
+      "passed": true
+    },
+    {
+      "name": "Live data updates the RPM-driven canvas; RPM drop loses the run",
+      "passed": true
+    },
+    {
+      "name": "Stale live feed voids a run, retry restores live play, schema errors do not invent data",
+      "passed": true
+    },
+    {
+      "name": "Predictor validates input, locks, and settles while the hamster sleeps",
+      "passed": true
+    },
+    {
+      "name": "Practice predictor settles in six simulated seconds",
+      "passed": true
+    },
+    {
+      "name": "16 hash-derived rhythm beats score, charge battery, and persist",
+      "passed": true
+    },
+    {
+      "name": "Wallet discovery, add/switch Sepolia, holder boost, rejection/retry, exact self-transaction and receipt",
+      "passed": true
+    },
+    {
+      "name": "Phone wallet sheet has all four app links, official marks, and Coinbase Smart Wallet",
+      "passed": true
+    },
+    {
+      "name": "Holder API failure keeps standard scoring; retry can activate boost",
+      "passed": true
+    },
+    {
+      "name": "Reduced motion and pause freeze the canvas without hiding telemetry",
+      "passed": true
+    },
+    {
+      "name": "Keyboard modal focus, Escape return, and tab arrow navigation",
+      "passed": true
+    },
+    {
+      "name": "Primary practice flow works with Tab, Enter and Space, with visible focus",
+      "passed": true
+    },
+    {
+      "name": "Storage blocked: playable with honest session-only score warning",
+      "passed": true
+    },
+    {
+      "name": "Stream URL works at static subpath and can exit",
+      "passed": true
+    },
+    {
+      "name": "Responsive layouts, RTL, 200% text, local fonts and sharing assets at /preview/",
+      "passed": true
+    },
+    {
+      "name": "Automated accessibility audit on wheel, predictor, rhythm, and wallet dialog",
+      "passed": true
+    },
+    {
+      "name": "No script errors or missing local export resources during all scenarios",
+      "passed": true
+    }
+  ],
+  "scriptErrors": [],
+  "localResourceErrors": []
+}

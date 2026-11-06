@@ -1,0 +1,270 @@
+{
+  "date": "2026-11-06",
+  "scope": "Added/modified Git candidate files, including this audit. Read-only inventory; no Git metadata modified.",
+  "limitBytes": 8388608,
+  "totalBytes": 1611443,
+  "remainingBytes": 6777165,
+  "distBytes": 891810,
+  "evidenceBytes": 344630,
+  "evidenceBudgetBytes": 1048576,
+  "fileCount": 61,
+  "checks": {
+    "withinBudget": true,
+    "withinEvidencePathBudget": true,
+    "noForbiddenOrGeneratedPaths": true,
+    "noDependencyArchives": true,
+    "noSubmodules": true,
+    "ordinaryFilesOnly": true,
+    "requiredDeliverablesPresent": true,
+    "manifestMatchesLockfile": true,
+    "relativeHtmlAndCssAssetsResolve": true,
+    "noSourceMaps": true,
+    "singleRuntimeCopyOfEachFont": true
+  },
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 867
+    },
+    {
+      "path": "DESIGN.md",
+      "bytes": 13236
+    },
+    {
+      "path": "README.md",
+      "bytes": 10365
+    },
+    {
+      "path": "artifacts/NOTICE.md",
+      "bytes": 2271
+    },
+    {
+      "path": "artifacts/REFERENCE-LICENSES.txt",
+      "bytes": 11964
+    },
+    {
+      "path": "artifacts/axe-violations.json",
+      "bytes": 2
+    },
+    {
+      "path": "artifacts/bundle-audit.json",
+      "bytes": 5348
+    },
+    {
+      "path": "artifacts/contrast-results.json",
+      "bytes": 572
+    },
+    {
+      "path": "artifacts/design-probe.json",
+      "bytes": 3389
+    },
+    {
+      "path": "artifacts/interaction-results.json",
+      "bytes": 2363
+    },
+    {
+      "path": "artifacts/screenshots/desktop-1440.png",
+      "bytes": 91330
+    },
+    {
+      "path": "artifacts/screenshots/keyboard-focus.png",
+      "bytes": 66222
+    },
+    {
+      "path": "artifacts/screenshots/mobile-390.png",
+      "bytes": 134313
+    },
+    {
+      "path": "artifacts/validation.md",
+      "bytes": 26856
+    },
+    {
+      "path": "dist/assets/ccip-C3sdHmhB.js",
+      "bytes": 4238
+    },
+    {
+      "path": "dist/assets/dist-yvQMK1SY.js",
+      "bytes": 96222
+    },
+    {
+      "path": "dist/assets/dm-sans-latin-Xz1IZZA0.woff2",
+      "bytes": 36932
+    },
+    {
+      "path": "dist/assets/index-DfnDAVtp.css",
+      "bytes": 29424
+    },
+    {
+      "path": "dist/assets/index-DwxChZj4.js",
+      "bytes": 628690
+    },
+    {
+      "path": "dist/assets/space-mono-latin-Rg4St2Dn.woff2",
+      "bytes": 16520
+    },
+    {
+      "path": "dist/favicon.svg",
+      "bytes": 338
+    },
+    {
+      "path": "dist/fonts/DM-Sans-LICENSE.txt",
+      "bytes": 4502
+    },
+    {
+      "path": "dist/fonts/Space-Mono-LICENSE.txt",
+      "bytes": 4726
+    },
+    {
+      "path": "dist/index.html",
+      "bytes": 1115
+    },
+    {
+      "path": "dist/social-card.png",
+      "bytes": 62685
+    },
+    {
+      "path": "dist/wallets/LICENSE.txt",
+      "bytes": 1064
+    },
+    {
+      "path": "dist/wallets/coinbase.svg",
+      "bytes": 538
+    },
+    {
+      "path": "dist/wallets/metaMask.svg",
+      "bytes": 1665
+    },
+    {
+      "path": "dist/wallets/phantom.svg",
+      "bytes": 861
+    },
+    {
+      "path": "dist/wallets/rabby.svg",
+      "bytes": 2290
+    },
+    {
+      "path": "index.html",
+      "bytes": 1016
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 58888
+    },
+    {
+      "path": "package.json",
+      "bytes": 1054
+    },
+    {
+      "path": "public/favicon.svg",
+      "bytes": 338
+    },
+    {
+      "path": "public/fonts/DM-Sans-LICENSE.txt",
+      "bytes": 4502
+    },
+    {
+      "path": "public/fonts/Space-Mono-LICENSE.txt",
+      "bytes": 4726
+    },
+    {
+      "path": "public/social-card.png",
+      "bytes": 62685
+    },
+    {
+      "path": "public/wallets/LICENSE.txt",
+      "bytes": 1064
+    },
+    {
+      "path": "public/wallets/coinbase.svg",
+      "bytes": 538
+    },
+    {
+      "path": "public/wallets/metaMask.svg",
+      "bytes": 1665
+    },
+    {
+      "path": "public/wallets/phantom.svg",
+      "bytes": 861
+    },
+    {
+      "path": "public/wallets/rabby.svg",
+      "bytes": 2290
+    },
+    {
+      "path": "scripts/preview-utils.mjs",
+      "bytes": 1560
+    },
+    {
+      "path": "scripts/social-card.mjs",
+      "bytes": 2819
+    },
+    {
+      "path": "scripts/validate.mjs",
+      "bytes": 27670
+    },
+    {
+      "path": "src/App.tsx",
+      "bytes": 34176
+    },
+    {
+      "path": "src/assets/fonts/dm-sans-latin.woff2",
+      "bytes": 36932
+    },
+    {
+      "path": "src/assets/fonts/space-mono-latin.woff2",
+      "bytes": 16520
+    },
+    {
+      "path": "src/components/Habitat.tsx",
+      "bytes": 8408
+    },
+    {
+      "path": "src/components/Modal.tsx",
+      "bytes": 1397
+    },
+    {
+      "path": "src/components/Scoreboard.tsx",
+      "bytes": 10460
+    },
+    {
+      "path": "src/components/SideGames.tsx",
+      "bytes": 13822
+    },
+    {
+      "path": "src/components/Wallet.tsx",
+      "bytes": 5836
+    },
+    {
+      "path": "src/lib/game.ts",
+      "bytes": 3821
+    },
+    {
+      "path": "src/lib/telemetry.ts",
+      "bytes": 6834
+    },
+    {
+      "path": "src/lib/wallet.ts",
+      "bytes": 2082
+    },
+    {
+      "path": "src/main.tsx",
+      "bytes": 564
+    },
+    {
+      "path": "src/styles.css",
+      "bytes": 37338
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "bytes": 38
+    },
+    {
+      "path": "tsconfig.json",
+      "bytes": 423
+    },
+    {
+      "path": "vite.config.ts",
+      "bytes": 208
+    }
+  ]
+}

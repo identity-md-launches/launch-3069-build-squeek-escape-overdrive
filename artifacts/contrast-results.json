@@ -1,0 +1,26 @@
+[
+  {
+    "selector": "h1",
+    "foreground": "rgb(237, 240, 232)",
+    "background": "rgb(16, 19, 17)",
+    "ratio": 16.23
+  },
+  {
+    "selector": ".run-action .button.primary",
+    "foreground": "rgb(24, 33, 14)",
+    "background": "rgb(195, 248, 92)",
+    "ratio": 13.39
+  },
+  {
+    "selector": ".run-action>p:first-child",
+    "foreground": "rgb(163, 174, 158)",
+    "background": "rgb(23, 28, 24)",
+    "ratio": 7.49
+  },
+  {
+    "selector": ".connection-banner",
+    "foreground": "rgb(212, 198, 159)",
+    "background": "rgb(35, 37, 29)",
+    "ratio": 9.14
+  }
+]
