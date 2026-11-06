@@ -86,7 +86,7 @@ export function Predictor({
         Predict the next settled block’s work units. Get closer, score higher.
       </p>
       <div className="prediction-context">
-        <span>24h median</span>
+        <span>Recent median</span>
         <strong className="mono">
           {history.length ? formatNumber(median) : "–"}{" "}
           <span className="small muted">WU</span>
@@ -298,6 +298,11 @@ export function Rhythm({
   };
   tapRef.current = tap;
   useEffect(() => {
+    if (!sound || phase !== "playing") return;
+    audioRef.current ??= new AudioContext();
+    void audioRef.current.resume();
+  }, [sound, phase]);
+  useEffect(() => {
     if (phase !== "playing") return;
     const key = (e: KeyboardEvent) => {
       if (
@@ -411,7 +416,7 @@ export function Rhythm({
       </p>
       <button
         className="button primary full tap-button"
-        disabled={!available}
+        disabled={phase !== "playing" && !available}
         onClick={() => (phase === "playing" ? tap() : start())}
       >
         {phase === "playing" ? (

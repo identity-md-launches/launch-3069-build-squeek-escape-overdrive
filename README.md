@@ -26,8 +26,8 @@ npm run preview
 ## Play
 
 - **Wheel run:** Join while the live wheel runs. The multiplier starts at 1×, adds 0.08× per second and 0.025× per RPM gained. Bail out to save `floor(100 × multiplier × holder boost)` points. Any observed RPM drop or idle state loses the run. A failed or stale status feed voids the run. Polling cannot detect movement between observations.
-- **Round predictor:** Review the 24-hour median and settlement chart, then lock a whole-number work-unit prediction. The first newly observed settled block above the saved history baseline resolves it, even while the hamster sleeps. Exact predictions earn 1,000 points; relative error reduces the score to a minimum of zero. If polling misses intermediate blocks, this is the earliest newer block present in the next history response.
-- **Hash rhythm:** The first 16 bytes of the latest historical settlement hash generate 16 beat intervals of 600–900 ms. Tap the pulse button or press Space. Within 90 ms earns 100 points and 3% battery charge; within 200 ms earns 50 points and 1%. Sound is opt-in. Reduced motion replaces traveling beat markers with a static timing cue.
+- **Round predictor:** Review the median of the recent settlements returned for the 24-hour window, then lock a whole-number work-unit prediction. The first newly observed settled block above the saved history baseline resolves it, even while the hamster sleeps. Exact predictions earn 1,000 points; relative error reduces the score to a minimum of zero. If polling misses intermediate blocks, this is the earliest newer block present in the next history response. The API's recent sample is not the entire settlement archive.
+- **Hash rhythm:** The first 16 bytes of the latest historical settlement hash generate 16 beat intervals of 600–900 ms. Tap the pulse button or press Space. Within 90 ms earns 100 points and 3% battery charge; within 200 ms earns 50 points and 1%. Sound is opt-in and can be enabled during a session. A history refresh failure blocks new sessions but leaves the captured rhythm tappable until it finishes or is stopped. Reduced motion replaces traveling beat markers with a static timing cue.
 - **Practice:** Explicitly simulated wheel telemetry and settlement history, available during outages. A practice wheel stops after 14–25 seconds; predictions settle after six seconds. Practice scores and battery charge stay separate and cannot be stamped on-chain.
 - **Stream view:** Open `#stream` using the header control. Copy that URL into an OBS browser source. It displays the habitat, telemetry, network, and live/practice state; Exit stream view returns to the controls. A wheel run continues when changing game tabs or entering stream view, so return to the wheel to bail out.
 
@@ -40,13 +40,15 @@ The frontend directly requests `https://api.squeekchain.com`:
 | Endpoint                          | Polling                    | Use                                                         |
 | --------------------------------- | -------------------------- | ----------------------------------------------------------- |
 | `/v1/status`                      | 4 seconds                  | RPM, running/idle state, distance, Squeekchain block height |
-| `/v1/economy/state`               | 20 seconds                 | Total work and settlements                                  |
+| `/v1/economy/state`               | 20 seconds                 | Available economy fields; absent aggregate statistics stay blank |
 | `/v1/settlements?range=24h`       | 15 seconds                 | Predictor, history chart, rhythm seed                       |
 | `/v1/accounts/{connectedAddress}` | 60 seconds while connected | Squeek NFT holder status                                    |
 
-Requests time out after eight seconds. Live runs require successful status data newer than 12 seconds; starting side games requires successful history newer than 45 seconds. Missing numbers remain unavailable, rather than becoming invented live values. Normalizers in `src/lib/telemetry.ts` accept explicit snake/camel-case fields and common response envelopes; unknown schemas produce recoverable unavailable states. Holder errors use the standard multiplier and offer Retry. Holder boosts are locked at game start.
+Requests time out after eight seconds. Live runs require successful status data newer than 12 seconds **and** fresh source measurements: `measurement.freshness` must be online when supplied, and `observedAt + staleAfterSeconds` must not have expired. Starting side games requires successful history newer than 45 seconds. Normalizers in `src/lib/telemetry.ts` support the published `measurement`/`builder`, `recentSettlements`, supply/asset decimals, and wallet/staking NFT custody fields, alongside the previously supported response formats. Unknown schemas and explicitly unavailable sources produce recoverable unavailable states. Holder errors use the standard multiplier and offer Retry. Holder boosts are locked at game start.
 
-**External limitation observed on 2026-11-06:** the three public telemetry endpoints returned HTTP 403 with Cloudflare challenge HTML from this environment. The actual production export was inspected in that honest unavailable state. Successful API shapes, changing telemetry, holder checks, and settlement arrivals were validated with controlled browser fixtures. The real successful response schema and CORS behavior remain unverified. The static app needs the public API to allow cross-origin JSON requests; it cannot bypass a service challenge. The Retry control and clearly labeled practice mode remain usable.
+**Revision verification on 2026-11-06:** direct public requests to all four endpoint types returned HTTP 200 JSON. The original adapters rejected all four bodies; the revised adapters accept them. Replaying the unchanged bodies at their original URLs in Chromium enables idle telemetry and both side games. Supplied account NFT counts qualify for the 15% boost. Small field projections of these responses are retained in `scripts/fixtures/squeekchain.json` for regression tests; snapshots are never runtime fallback data. The economy response has live supply but no total-work or total-settlement statistics, so those two readings remain unavailable. The recent settlement sample is not mislabeled as the complete 24-hour history.
+
+**Remaining transport limitation:** unmocked Chromium requests to the public API failed with `net::ERR_EMPTY_RESPONSE` during this revision, while direct requests succeeded. Browser CORS and continued service availability are therefore unverified. The site exposes its unavailable state, Retry, and labeled practice mode when transport fails.
 
 ## Wallets and score proofs
 
@@ -56,7 +58,7 @@ Wallet configuration is in `src/lib/wallet.ts`:
 - EIP-6963 discovery lists installed extensions by their names and marks; the generic fallback is called Browser wallet.
 - On phones without an injected wallet, the sheet offers MetaMask, Coinbase Wallet, Rabby, and Phantom app links, plus Coinbase Smart Wallet through the installed Coinbase SDK.
 - A wrong network offers Switch to Sepolia, including the add-chain fallback. The header shows the connected address and a Disconnect action.
-- Explicit API holder status or an NFT count above zero applies a **15%** score boost. An ordinary fungible balance does not establish NFT ownership.
+- Explicit API holder status, a wallet/staking NFT count above zero, or a token with wallet/staking custody applies a **15%** score boost. An ordinary fungible balance does not establish NFT ownership. A partial empty token page cannot establish non-ownership.
 
 A saved live score enables **Commit high score on-chain** after connection and network selection. Review the score, Squeekchain block, recipient, and data in the confirmation dialog. The wallet sends **0 ETH to its own address** on Sepolia with UTF-8 hex calldata:
 
@@ -73,20 +75,21 @@ A stamp proves the account submitted the score data. It does not independently v
 ```sh
 npx playwright install chromium
 npm run validate
+node --experimental-strip-types --test scripts/telemetry.test.mjs
 ```
 
-Linux may also need Playwright’s documented browser system dependencies. An existing Chromium executable can be selected with `npm run validate -- --chromium=/path/to/chromium`. The validation script owns a temporary preview server and browser, tests the real production export at a static subpath, uses isolated mock API/wallet/RPC fixtures, and closes both on completion. Output goes to disposable `test/scratch/validation/`.
+Linux may also need Playwright’s documented browser system dependencies. An existing Chromium executable can be selected with `npm run validate -- --chromium=/path/to/chromium`, or an installed Playwright module with `IMD_PLAYWRIGHT=/path/to/playwright/index.mjs`. The validation script owns a temporary preview server and browser, tests the real production export at a static subpath, uses isolated API/wallet/RPC fixtures, and closes both on completion. Output goes to disposable `test/scratch/validation/`.
 
 Actual worker results:
 
 - Production build and independent typecheck passed.
-- 19 browser checks passed, including a complete keyboard practice flow, live/practice scoring, stale/error recovery, predictor resolution, all 16 rhythm beats, storage failure, EIP-6963 discovery, Sepolia switching/addition, holder boosts, transaction rejection/retry, exact calldata/self-recipient/zero value, mocked receipt confirmation, phone wallet links, stream navigation, and static asset loading.
+- 24 browser checks passed, retaining the original 19 flows and adding published API-schema replay, source freshness, mid-session sound, stream view from both side games, and active rhythm recovery after a history failure. Checks include the 15% holder boost, complete keyboard play, predictor resolution, all 16 rhythm beats, score persistence, wallet discovery, switching, transaction rejection/retry, exact proof calldata and mocked receipts.
 - Axe found zero violations in the tested wheel, predictor, rhythm, and wallet-dialog states. This is not a full accessibility certification.
 - The pinned taste@1 probe passed all 16 checks at 320, 390, and 1440 pixels. At 390 × 844, the primary action occupies approximately y=754–800, fully on the first screen.
 - Additional layouts were checked at 680, 820, and 1080 pixels; RTL mirroring and 200% CSS text enlargement reflowed at 390 without horizontal overflow. CSS text enlargement is distinct from browser-native zoom.
-- 32 focused core assertions passed for scoring, freshness, hash timing, schema rejection, holder eligibility, and practice proof exclusion.
+- 13 parser regression tests passed for published/legacy shapes, unit conversion, source expiry, missing fields, settlement timestamps, NFT custody and pagination, unavailable responses, and absence of invented totals.
 
-The managed browser failed to launch due to its temporary socket path; direct Playwright Chromium inspection succeeded using an installed headless shell. WebKit was downloaded but could not launch because required shared libraries were absent (`liblcms2.so.2` was the first reported). Safari/WebKit behavior, physical phone handoff, screen readers, native zoom, actual passkey creation, and a real signed Sepolia transaction remain unverified. Mock transaction success does not establish real network acceptance.
+The managed browser connection returned `Transport closed`; direct Playwright Chromium inspection succeeded. WebKit could not launch because its requested executable was unavailable; nothing was installed for it. Safari/WebKit behavior, physical phone handoff, screen readers, native zoom, actual passkey creation, and a real signed Sepolia transaction remain unverified. Mock transaction success does not establish real network acceptance.
 
 See [artifacts/validation.md](artifacts/validation.md) for the six-domain review, findings, fixes, coverage, and retained evidence. [DESIGN.md](DESIGN.md) documents the final implementation.
 

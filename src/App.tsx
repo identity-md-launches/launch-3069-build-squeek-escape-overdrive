@@ -128,6 +128,7 @@ export default function App() {
   const liveFresh = Boolean(
     telemetry.status.data &&
     !telemetry.status.isError &&
+    now < (telemetry.status.data.expiresAt ?? Infinity) &&
     now - telemetry.status.dataUpdatedAt < 12000,
   );
   const elapsedPractice = practiceStarted
@@ -230,7 +231,9 @@ export default function App() {
       rpm,
       running,
       mode === "practice" ||
-        (liveFresh && Date.now() - telemetry.status.dataUpdatedAt < 12000),
+        (liveFresh &&
+          Date.now() < (telemetry.status.data?.expiresAt ?? Infinity) &&
+          Date.now() - telemetry.status.dataUpdatedAt < 12000),
     );
     if (current.phase !== "active") {
       setRun(current);
@@ -712,7 +715,7 @@ export default function App() {
               </div>
               <p className="small muted">
                 {historyAvailable && history.length
-                  ? `${history.length} settlements · ${formatNumber(medianWork(history))} median work units`
+                  ? `${history.length} recent settlements · ${formatNumber(medianWork(history))} median work units`
                   : telemetry.settlements.isPending
                     ? "Loading settlement history…"
                     : "History unavailable. Retry the feed or switch to practice."}

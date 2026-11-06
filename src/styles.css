@@ -1688,7 +1688,7 @@ details code {
   .rhythm-feedback {
     min-height: 26px;
   }
-  .alternate-game .scene {
+  .app:not(.stream-mode) .alternate-game .scene {
     display: none;
   }
   .alternate-game .telemetry-strip {

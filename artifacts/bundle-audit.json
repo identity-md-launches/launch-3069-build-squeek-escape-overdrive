@@ -1,13 +1,13 @@
 {
   "date": "2026-11-06",
-  "scope": "Added/modified Git candidate files, including this audit. Read-only inventory; no Git metadata modified.",
+  "scope": "All existing Git candidate files plus nonignored new files. Deleted generated assets excluded. Read-only Git inventory; no Git metadata changed.",
   "limitBytes": 8388608,
-  "totalBytes": 1611443,
-  "remainingBytes": 6777165,
-  "distBytes": 891810,
-  "evidenceBytes": 344630,
+  "totalBytes": 1581541,
+  "remainingBytes": 6807067,
+  "distBytes": 893491,
+  "evidenceBytes": 282637,
   "evidenceBudgetBytes": 1048576,
-  "fileCount": 61,
+  "fileCount": 63,
   "checks": {
     "withinBudget": true,
     "withinEvidencePathBudget": true,
@@ -19,7 +19,9 @@
     "manifestMatchesLockfile": true,
     "relativeHtmlAndCssAssetsResolve": true,
     "noSourceMaps": true,
-    "singleRuntimeCopyOfEachFont": true
+    "singleRuntimeCopyOfEachFont": true,
+    "protectedManifestsUnchanged": true,
+    "allFindingResponsesPresent": true
   },
   "files": [
     {
@@ -28,11 +30,11 @@
     },
     {
       "path": "DESIGN.md",
-      "bytes": 13236
+      "bytes": 13411
     },
     {
       "path": "README.md",
-      "bytes": 10365
+      "bytes": 11596
     },
     {
       "path": "artifacts/NOTICE.md",
@@ -48,7 +50,7 @@
     },
     {
       "path": "artifacts/bundle-audit.json",
-      "bytes": 5348
+      "bytes": 5630
     },
     {
       "path": "artifacts/contrast-results.json",
@@ -56,34 +58,34 @@
     },
     {
       "path": "artifacts/design-probe.json",
-      "bytes": 3389
+      "bytes": 3349
     },
     {
       "path": "artifacts/interaction-results.json",
-      "bytes": 2363
+      "bytes": 3063
     },
     {
       "path": "artifacts/screenshots/desktop-1440.png",
-      "bytes": 91330
+      "bytes": 91382
     },
     {
       "path": "artifacts/screenshots/keyboard-focus.png",
-      "bytes": 66222
+      "bytes": 66185
     },
     {
       "path": "artifacts/screenshots/mobile-390.png",
-      "bytes": 134313
+      "bytes": 61895
     },
     {
       "path": "artifacts/validation.md",
-      "bytes": 26856
+      "bytes": 36324
     },
     {
-      "path": "dist/assets/ccip-C3sdHmhB.js",
+      "path": "dist/assets/ccip-CL3I9EeY.js",
       "bytes": 4238
     },
     {
-      "path": "dist/assets/dist-yvQMK1SY.js",
+      "path": "dist/assets/dist-D5xTzIGs.js",
       "bytes": 96222
     },
     {
@@ -91,12 +93,12 @@
       "bytes": 36932
     },
     {
-      "path": "dist/assets/index-DfnDAVtp.css",
-      "bytes": 29424
+      "path": "dist/assets/index-7raUQkwJ.js",
+      "bytes": 630348
     },
     {
-      "path": "dist/assets/index-DwxChZj4.js",
-      "bytes": 628690
+      "path": "dist/assets/index-DrYCqbG-.css",
+      "bytes": 29447
     },
     {
       "path": "dist/assets/space-mono-latin-Rg4St2Dn.woff2",
@@ -191,6 +193,10 @@
       "bytes": 2290
     },
     {
+      "path": "scripts/fixtures/squeekchain.json",
+      "bytes": 10411
+    },
+    {
       "path": "scripts/preview-utils.mjs",
       "bytes": 1560
     },
@@ -199,12 +205,16 @@
       "bytes": 2819
     },
     {
+      "path": "scripts/telemetry.test.mjs",
+      "bytes": 7285
+    },
+    {
       "path": "scripts/validate.mjs",
-      "bytes": 27670
+      "bytes": 35786
     },
     {
       "path": "src/App.tsx",
-      "bytes": 34176
+      "bytes": 34325
     },
     {
       "path": "src/assets/fonts/dm-sans-latin.woff2",
@@ -228,7 +238,7 @@
     },
     {
       "path": "src/components/SideGames.tsx",
-      "bytes": 13822
+      "bytes": 14018
     },
     {
       "path": "src/components/Wallet.tsx",
@@ -240,7 +250,7 @@
     },
     {
       "path": "src/lib/telemetry.ts",
-      "bytes": 6834
+      "bytes": 9658
     },
     {
       "path": "src/lib/wallet.ts",
@@ -252,7 +262,7 @@
     },
     {
       "path": "src/styles.css",
-      "bytes": 37338
+      "bytes": 37361
     },
     {
       "path": "src/vite-env.d.ts",

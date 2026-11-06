@@ -1,11 +1,17 @@
 // Deterministic validation of the built static export. All fixtures stay in browser contexts.
 import assert from "node:assert/strict";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
-import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
 import { getAddress, keccak256, stringToHex, hexToString } from "viem";
 import { preview, executablePath } from "./preview-utils.mjs";
+const { chromium } = await import(process.env.IMD_PLAYWRIGHT ?? "playwright");
+const publishedApi = JSON.parse(
+  await readFile(
+    new URL("./fixtures/squeekchain.json", import.meta.url),
+    "utf8",
+  ),
+);
 const output = "test/scratch/validation";
 await mkdir(output, { recursive: true });
 const server = await preview();
@@ -45,6 +51,8 @@ async function makePage({
   reducedMotion = "no-preference",
   storageBlocked = false,
   phone = false,
+  published = false,
+  audio = false,
 } = {}) {
   const context = await browser.newContext({
     viewport: { width, height: width < 600 ? 844 : 900 },
@@ -66,13 +74,41 @@ async function makePage({
     holder: true,
     badSchema: false,
     accountError: false,
+    historyError: false,
+    publishedStatus: structuredClone(publishedApi.status),
+    publishedSettlements: structuredClone(publishedApi.settlements),
   };
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("response", (response) => {
     if (response.url().startsWith(server.url) && response.status() >= 400)
       resourceErrors.push(response.url());
   });
-  await page.clock.install({ time: new Date("2026-11-06T12:00:00Z") });
+  await page.clock.install({
+    time: new Date(
+      published ? publishedApi.status.generatedAt : "2026-11-06T12:00:00Z",
+    ),
+  });
+  if (audio)
+    await page.addInitScript(() => {
+      window.__audio = { contexts: 0, tones: 0 };
+      const Original = window.AudioContext;
+      window.AudioContext = class extends Original {
+        constructor(...args) {
+          super(...args);
+          window.__audio.contexts++;
+          const create = this.createOscillator.bind(this);
+          this.createOscillator = (...args) => {
+            const oscillator = create(...args),
+              start = oscillator.start.bind(oscillator);
+            oscillator.start = (...args) => {
+              window.__audio.tones++;
+              return start(...args);
+            };
+            return oscillator;
+          };
+        }
+      };
+    });
   if (wallet)
     await page.addInitScript(
       ({ address, hash }) => {
@@ -160,6 +196,26 @@ async function makePage({
         body: "{}",
       });
     const path = new URL(route.request().url()).pathname;
+    if (state.historyError && path.endsWith("/settlements"))
+      return route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: "{}",
+      });
+    if (published) {
+      const payload = path.endsWith("/status")
+        ? state.publishedStatus
+        : path.endsWith("/economy/state")
+          ? publishedApi.economy
+          : path.includes("/accounts/")
+            ? publishedApi.account
+            : state.publishedSettlements;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(payload),
+      });
+    }
     const payload = path.endsWith("/status")
       ? state.badSchema
         ? { unexpected: true }
@@ -255,6 +311,160 @@ async function noOverflow(page) {
   );
 }
 try {
+  await check(
+    "Published API schemas: idle readings, playable side games, NFT holder boost and predictor settlement",
+    async () => {
+      for (const width of [390, 1440]) {
+        const { page, context, state } = await makePage({
+          published: true,
+          wallet: true,
+          width,
+        });
+        assert.match(
+          await page.locator(".telemetry-strip").innerText(),
+          /#1,140/,
+        );
+        assert.equal(
+          await page.getByRole("img", { name: /sleeping/ }).count(),
+          1,
+        );
+        const waiting = page.getByRole("button", {
+          name: "Waiting for the wheel…",
+          exact: true,
+        });
+        const box = await waiting.boundingBox();
+        assert.ok(box && box.y + box.height <= page.viewportSize().height);
+        assert.equal(await waiting.isDisabled(), true);
+        assert.match(await page.locator(".economy-stats").innerText(), /–/);
+        await click(page, "button", "Connect wallet");
+        await click(page, "button", "Test Hamster Wallet");
+        await click(page, "button", "Switch to Sepolia");
+        await page.getByText("Holder boost active · +15%").waitFor();
+        await click(page, "tab", "Round predictor");
+        const lockBox = await page
+          .getByRole("button", { name: "Lock prediction" })
+          .boundingBox();
+        assert.ok(
+          lockBox && lockBox.y + lockBox.height <= page.viewportSize().height,
+        );
+        await page.getByLabel("Your prediction").fill("18");
+        await click(page, "button", "Lock prediction");
+        state.publishedSettlements.recentSettlements.unshift({
+          ...publishedApi.settlements.recentSettlements[0],
+          blockHeight: "1141",
+        });
+        await click(page, "button", "Retry live telemetry");
+        await page.getByText("1,150 points locked in").waitFor();
+        await click(page, "tab", "Hash rhythm");
+        const start = page.getByRole("button", { name: "Start rhythm" });
+        const startBox = await start.boundingBox();
+        assert.ok(
+          startBox &&
+            startBox.y + startBox.height <= page.viewportSize().height,
+        );
+        assert.equal(await start.isDisabled(), false);
+        await noOverflow(page);
+        await context.close();
+      }
+    },
+  );
+  await check(
+    "Published source freshness: stale HTTP-200 telemetry voids an active live run",
+    async () => {
+      const { page, context, state } = await makePage({ published: true });
+      Object.assign(state.publishedStatus.measurement, {
+        coreStatus: "RUNNING",
+        rpmMilli: 42750,
+        distanceMm: 123456,
+      });
+      await click(page, "button", "Retry live telemetry");
+      await page.getByRole("img", { name: /running at 42.8 RPM/ }).waitFor();
+      await click(page, "button", "Join live run");
+      state.publishedStatus.measurement.freshness = "stale";
+      await click(page, "button", "Retry live telemetry");
+      await page.getByText("Feed lost. Run voided.", { exact: true }).waitFor();
+      assert.equal(await page.locator(".score-row").count(), 0);
+      await context.close();
+    },
+  );
+  await check(
+    "Mid-rhythm sound toggle initializes once, plays tones, mutes and reuses its context",
+    async () => {
+      const { page, context } = await makePage({
+        published: true,
+        audio: true,
+      });
+      await click(page, "tab", "Hash rhythm");
+      await click(page, "button", "Start rhythm");
+      await page.clock.runFor(500);
+      await click(page, "button", "Enable game sound");
+      await page.waitForTimeout(50);
+      await page.clock.runFor(2400);
+      const first = await page.evaluate(() => window.__audio);
+      assert.equal(first.contexts, 1);
+      assert.ok(first.tones > 0);
+      await click(page, "button", "Mute game sound");
+      const muted = await page.evaluate(() => window.__audio.tones);
+      await page.clock.runFor(1000);
+      assert.equal(await page.evaluate(() => window.__audio.tones), muted);
+      await click(page, "button", "Enable game sound");
+      await page.clock.runFor(2000);
+      const resumed = await page.evaluate(() => window.__audio);
+      assert.equal(resumed.contexts, 1);
+      assert.ok(resumed.tones > muted);
+      await context.close();
+    },
+  );
+  await check(
+    "Stream view preserves the canvas from either side-game tab at 320, 390, 680 and 1440",
+    async () => {
+      const { page, context } = await makePage({ published: true });
+      for (const width of [320, 390, 680, 1440]) {
+        await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
+        for (const tab of ["Round predictor", "Hash rhythm"]) {
+          await click(page, "tab", tab);
+          if (width <= 680)
+            assert.equal(await page.locator("canvas").isVisible(), false);
+          await click(page, "button", "Stream view");
+          assert.equal(await page.locator("canvas").isVisible(), true);
+          assert.equal(await page.locator(".game-controls").isVisible(), false);
+          await noOverflow(page);
+          await click(page, "button", "Exit stream view");
+        }
+      }
+      await context.close();
+    },
+  );
+  await check(
+    "Captured rhythm remains tappable after HTTP-503 history refresh; a new session requires recovery",
+    async () => {
+      const { page, context, state } = await makePage({ published: true });
+      await click(page, "tab", "Hash rhythm");
+      await click(page, "button", "Start rhythm");
+      state.historyError = true;
+      await click(page, "button", "Retry live telemetry");
+      await page.waitForTimeout(50);
+      await page.clock.runFor(100);
+      assert.equal(
+        await page.getByRole("button", { name: "Tap the pulse" }).isDisabled(),
+        false,
+      );
+      await click(page, "button", "Tap the pulse");
+      await page.getByText("Off beat. Catch the next pulse.").waitFor();
+      await click(page, "button", "Stop rhythm");
+      assert.equal(
+        await page.getByRole("button", { name: "Start rhythm" }).isDisabled(),
+        true,
+      );
+      state.historyError = false;
+      await click(page, "button", "Retry live telemetry");
+      assert.equal(
+        await page.getByRole("button", { name: "Start rhythm" }).isDisabled(),
+        false,
+      );
+      await context.close();
+    },
+  );
   await check(
     "First screen at 390: product, scene, and complete primary action",
     async () => {

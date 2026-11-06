@@ -6,6 +6,7 @@ export type Telemetry = {
   running: boolean;
   distance: number | null;
   blockHeight: number;
+  expiresAt?: number;
 };
 export type Settlement = {
   height: number;
@@ -42,11 +43,49 @@ export function numberValue(...values: unknown[]): number | null {
   }
   return null;
 }
+function requireAvailable(r: RecordData) {
+  if (
+    typeof r.status === "string" &&
+    /^(unavailable|stale|offline|error)$/i.test(r.status)
+  )
+    throw new Error("Squeekchain reports that this data is unavailable.");
+}
 export function parseStatus(raw: unknown): Telemetry {
   const r = unwrap(raw),
     wheel = record(r.wheel ?? r.hamster ?? r.telemetry),
-    chain = record(r.chain);
+    chain = record(r.chain),
+    measurement = record(r.measurement),
+    builder = record(r.builder);
+  requireAvailable(r);
+  if (
+    typeof measurement.freshness === "string" &&
+    measurement.freshness !== "online"
+  )
+    throw new Error("Squeekchain wheel measurements are not fresh.");
+  const observedAt =
+    typeof measurement.observedAt === "string"
+      ? Date.parse(measurement.observedAt)
+      : NaN;
+  const staleAfter = numberValue(measurement.staleAfterSeconds);
+  if (
+    (measurement.observedAt !== undefined ||
+      measurement.staleAfterSeconds !== undefined) &&
+    (!Number.isFinite(observedAt) || staleAfter === null)
+  )
+    throw new Error("Squeekchain wheel freshness information is invalid.");
+  const expiresAt =
+    Number.isFinite(observedAt) && staleAfter !== null
+      ? observedAt + staleAfter * 1000
+      : undefined;
+  if (
+    expiresAt !== undefined &&
+    (!Number.isFinite(expiresAt) || Date.now() >= expiresAt)
+  )
+    throw new Error("Squeekchain wheel measurements have expired.");
+  const rpmMilli = numberValue(measurement.rpmMilli),
+    distanceMm = numberValue(measurement.distanceMm);
   const rpm = numberValue(
+    rpmMilli === null ? null : rpmMilli / 1000,
     r.rpm,
     r.current_rpm,
     r.currentRpm,
@@ -60,6 +99,8 @@ export function parseStatus(raw: unknown): Telemetry {
     chain.block_height,
     chain.height,
     chain.blockHeight,
+    record(builder.anchor).blockHeight,
+    record(builder.projected).blockHeight,
   );
   if (
     rpm === null ||
@@ -68,7 +109,12 @@ export function parseStatus(raw: unknown): Telemetry {
   )
     throw new Error("The status response is missing RPM or block height.");
   const state =
-    r.state ?? r.wheel_state ?? r.status ?? wheel.state ?? wheel.status;
+    measurement.coreStatus ??
+    r.state ??
+    r.wheel_state ??
+    r.status ??
+    wheel.state ??
+    wheel.status;
   const sleeping = /sleep|idle|stop|rest/i.test(String(state));
   const flag =
     typeof r.running === "boolean"
@@ -79,8 +125,10 @@ export function parseStatus(raw: unknown): Telemetry {
   return {
     rpm,
     blockHeight,
-    running: flag && rpm > 0,
+    running: flag && !sleeping && rpm > 0,
+    ...(expiresAt === undefined ? {} : { expiresAt }),
     distance: numberValue(
+      distanceMm === null ? null : distanceMm / 1000,
       r.distance_m,
       r.distance_meters,
       r.distance,
@@ -91,17 +139,20 @@ export function parseStatus(raw: unknown): Telemetry {
 }
 export function parseSettlements(raw: unknown): Settlement[] {
   const r = unwrap(raw);
+  requireAvailable(r);
   const list = Array.isArray(raw)
     ? raw
-    : Array.isArray(r.settlements)
-      ? r.settlements
-      : Array.isArray(r.items)
-        ? r.items
-        : Array.isArray(r.blocks)
-          ? r.blocks
-          : Array.isArray(record(raw).data)
-            ? record(raw).data
-            : undefined;
+    : Array.isArray(r.recentSettlements)
+      ? r.recentSettlements
+      : Array.isArray(r.settlements)
+        ? r.settlements
+        : Array.isArray(r.items)
+          ? r.items
+          : Array.isArray(r.blocks)
+            ? r.blocks
+            : Array.isArray(record(raw).data)
+              ? record(raw).data
+              : undefined;
   if (!Array.isArray(list))
     throw new Error("The settlements response has an unrecognized format.");
   const result = list.flatMap((item): Settlement[] => {
@@ -113,13 +164,19 @@ export function parseSettlements(raw: unknown): Settlement[] {
         s.block_number,
       );
     const workUnits = numberValue(
+      s.workAdded,
       s.work_units,
       s.workUnits,
       s.work,
       s.total_work_units,
     );
     const hash =
-      s.hash ?? s.block_hash ?? s.blockHash ?? s.settlement_hash ?? s.tx_hash;
+      s.transactionHash ??
+      s.hash ??
+      s.block_hash ??
+      s.blockHash ??
+      s.settlement_hash ??
+      s.tx_hash;
     if (
       height === null ||
       !Number.isSafeInteger(height) ||
@@ -128,7 +185,8 @@ export function parseSettlements(raw: unknown): Settlement[] {
       !/^0x[0-9a-f]{64}$/i.test(hash)
     )
       return [];
-    const date = s.timestamp ?? s.settled_at ?? s.created_at;
+    const date =
+      s.blockTimestamp ?? s.timestamp ?? s.settled_at ?? s.created_at;
     const timestamp =
       typeof date === "string" && !/^\d+$/.test(date)
         ? Date.parse(date)
@@ -157,6 +215,9 @@ export function parseSettlements(raw: unknown): Settlement[] {
 }
 export function parseEconomy(raw: unknown): Economy {
   const r = unwrap(raw);
+  requireAvailable(r);
+  const decimals = numberValue(record(r.asset).decimals);
+  const liveSupply = numberValue(record(r.supply).liveSupplyBaseUnits);
   const economy = {
     totalWork: numberValue(
       r.total_work_units,
@@ -169,7 +230,17 @@ export function parseEconomy(raw: unknown): Economy {
       r.totalSettlements,
       r.settlement_count,
     ),
-    supply: numberValue(r.total_supply, r.totalSupply, r.circulating_supply),
+    supply: numberValue(
+      r.total_supply,
+      r.totalSupply,
+      r.circulating_supply,
+      liveSupply !== null &&
+        decimals !== null &&
+        Number.isInteger(decimals) &&
+        decimals <= 255
+        ? liveSupply / 10 ** decimals
+        : null,
+    ),
   };
   if (Object.values(economy).every((v) => v === null))
     throw new Error("The economy response has an unrecognized format.");
@@ -178,6 +249,23 @@ export function parseEconomy(raw: unknown): Economy {
 export function parseHolder(raw: unknown): boolean {
   const r = unwrap(raw),
     nft = record(r.nft ?? r.nfts);
+  requireAvailable(r);
+  const counts = record(r.tokenCounts),
+    wallet = numberValue(counts.wallet),
+    staking = numberValue(counts.staking);
+  if ((wallet !== null && wallet > 0) || (staking !== null && staking > 0))
+    return true;
+  if (wallet === 0 && staking === 0) return false;
+  if (Array.isArray(r.tokens)) {
+    if (
+      r.tokens.some((token) =>
+        ["wallet", "staking"].includes(String(record(token).custody)),
+      )
+    )
+      return true;
+    // An empty complete page establishes absence; a partial page cannot.
+    if (r.tokens.length === 0 && !r.nextCursor) return false;
+  }
   const flag =
     r.is_holder ?? r.isHolder ?? r.nft_holder ?? r.is_nft_holder ?? r.holder;
   if (typeof flag === "boolean") return flag;

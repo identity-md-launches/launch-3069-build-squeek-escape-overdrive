@@ -1,5 +1,65 @@
 # Implementation and validation record
 
+## Revision verification, 2026-11-06
+
+This section supersedes the initial build's API availability, schema coverage, check counts and browser-runtime limitations below. The original implementation and review record is retained after it. The revision preserves the existing design, dependencies, wallet/proof implementation and static architecture.
+
+| Area | Revision result |
+| --- | --- |
+| Reported defects | All four reproduced before editing; all four fixed |
+| Production export / independent typecheck | Both passed on the revised source |
+| Parser regression tests | 13/13 passed |
+| Production browser checks | 24/24 passed, including the original 19 checks |
+| First screen at 390 × 844 | Product, wheel and complete primary control visible; side-game actions also fit |
+| taste@1 | 16/16 passed at 320, 390 and 1440, including reduced motion |
+| Axe | No violations in the tested wheel, predictor, rhythm and wallet-dialog states |
+| Unmocked external transport | Direct public requests: HTTP 200 JSON; Chromium: `net::ERR_EMPTY_RESPONSE` |
+
+### Reproductions and fixes
+
+1. **Published schemas rejected** — `src/lib/telemetry.ts:53`, `:140`, `:216`, `:249`. Before editing, direct calls to all four parsers with newly captured, unmodified HTTP-200 bodies reproduced the exact reported errors. An unchanged-body Chromium replay at the original API URLs also reproduced the unavailable banner and disabled side games at 390 and 1440. The adapters now normalize milli-RPM and millimeters, `coreStatus`, confirmed anchor height (projected fallback), recent settlement work/hash/timestamp, explicitly supplied live supply with asset decimals, and wallet/staking NFT counts or custody. The response's missing total-work and total-settlement statistics remain null. The returned 10-row recent sample is labeled as recent; its median does not claim to cover the summary's 141 settlements. HTTP-200 source records marked stale/offline or past their observation expiry cannot enable live play; `src/App.tsx:131` and `:235` also gate an already received reading by that expiry. After the correction, unchanged-body replay renders idle telemetry (0 RPM, 0 m, block 1140) and enables both side games at both widths. The fixture browser flow also verifies a 1,150-point exact prediction with the holder boost.
+2. **Sound enabled mid-session stayed silent** — `src/components/SideGames.tsx:300`. Before: enabling 500ms into a rhythm produced zero audio contexts and tones after another 2.4 seconds. After: the sound/phase effect initializes or resumes the existing context; that reproduction records one context and two tones. A persistent browser regression checks enabling, muting, re-enabling and context reuse.
+3. **Stream canvas hidden after side-game selection** — `src/styles.css:1691`. Before: both side-game tabs left the mobile scene at `display:none` after entering stream view. The mobile hiding rule now applies only outside stream mode. Both tab transitions pass at 320, 390, 680 and 1440. The corrected 390 stream screenshot was inspected: the hamster and wheel occupy the scene above telemetry, with no game controls or overflow.
+4. **Background failure disabled active rhythm input** — `src/components/SideGames.tsx:419`. Before: a controlled HTTP-503 history response disabled Tap the pulse while the captured session continued. The playing phase now keeps its native button enabled. Validation confirms taps still update feedback after the failure, stopping the rhythm requires history recovery before another start, and Retry restores that start action.
+
+All findings are answered individually in `.imd-responses.json`. No public API outage or malformed response was invented as a real observed service event; HTTP 503 in the regression is an explicit controlled failure.
+
+### Commands and evidence
+
+Dependencies were installed from the unchanged root manifest and lockfile into an isolated copy at `test/scratch/toolchain/` with `npm ci --prefix test/scratch/toolchain --cache test/scratch/npm-cache --ignore-scripts --no-audit --no-fund`. Source, public assets and configuration were copied there without edits. This avoids modifying protected dependency directories; the scratch copy is excluded from submission. All production browser checks served the repository-root `dist/` under `/preview/`.
+
+| Command / operation | Actual result |
+| --- | --- |
+| `npm --prefix test/scratch/toolchain run typecheck` | Exit 0 |
+| `npm --prefix test/scratch/toolchain run build -- --outDir ../../../dist --emptyOutDir` | Exit 0; TypeScript and Vite; old hashed output assets removed |
+| `node --experimental-strip-types --test test/scratch/toolchain/scripts/telemetry.test.mjs` | Exit 0; 13 named tests passed; snapshot status tests freeze the clock at capture time |
+| `IMD_PLAYWRIGHT=/opt/imd-tools/playwright-mcp/node_modules/playwright/index.mjs PLAYWRIGHT_BROWSERS_PATH=/opt/imd-tools/ms-playwright node test/scratch/toolchain/scripts/validate.mjs` | Exit 0; 24/24 checks; no script errors or missing local resources |
+| `IMD_PLAYWRIGHT=/opt/imd-tools/playwright-mcp/node_modules/playwright/index.mjs PLAYWRIGHT_BROWSERS_PATH=/opt/imd-tools/ms-playwright node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste` | Exit 0; 16/16 checks; pinned script unmodified |
+| Direct requests to all four public API endpoint types | HTTP 200 JSON captured around 17:25 UTC; all original parser errors reproduced before correction |
+| Unmodified full-body replay at original API URLs | Fixed production export passes at 390 and 1440; raw bodies and baseline/fixed records kept only in disposable scratch |
+| Unmocked Chromium production preview | External API requests fail with `net::ERR_EMPTY_RESPONSE`; unavailable banner is truthful; zero script errors |
+| Managed browser connector | Returned `Transport closed` before navigation; direct Playwright Chromium used for inspection |
+| WebKit launch | Requested executable unavailable; no WebKit success claimed and no browser installation attempted |
+
+The Vite build retains the upstream `ox/tempo` browser-externalization warning for `node:worker_threads`; no runtime script error occurred in the exercised paths. Source snapshots in `scripts/fixtures/squeekchain.json` are small field projections of captured public responses (one wallet token retained); they are test inputs, never simulated live fallback data. The source URLs are [status](https://api.squeekchain.com/v1/status), [economy](https://api.squeekchain.com/v1/economy/state), [settlements](https://api.squeekchain.com/v1/settlements?range=24h), and [the reported public account](https://api.squeekchain.com/v1/accounts/0x9ca0a63dcea0592859bf78083c3a455fde747d31).
+
+### Consolidated Better Interface review
+
+| Domain | Coverage and disposition |
+| --- | --- |
+| Accessibility | Preserved native inputs/buttons, names, tab navigation and focus behavior. Keyboard primary play and modal return checks passed. The rhythm button remains operable throughout its captured session. Axe reports zero violations in four tested states. Screen-reader and physical-device sessions remain unperformed. |
+| Layout | Corrected the stream-only canvas collapse at `src/styles.css:1691`. Viewed the revised 390px live-replay, predictor, rhythm and stream states and 1440px desktop scene. Automated reflow checks cover 320, 390, 680, 820, 1080 and 1440, plus RTL and 200% CSS text enlargement. No horizontal overflow. Native browser zoom remains unverified. |
+| Writing | Corrected misleading full-window median wording at `src/components/SideGames.tsx:89` and the sample caption in `src/App.tsx`. Missing aggregate statistics remain unavailable. Live, practice and transport errors stay explicit. No unrelated marketing copy changed. |
+| Typography | Existing two local families, three weights and six-token scale preserved. Probe passes sizes, tracking and faces; revised numeric values and full scene labels fit at observed widths. |
+| Colors | Existing role tokens preserved. Probe's resolved solid-background text pairs pass the required thresholds. Five text boxes over media remain outside its contrast measurement; no new measured ratio is claimed. |
+| UI | Corrected sound state application and rhythm availability without adding surfaces or dependencies. Existing paused/reduced-motion behavior, score states, dialogs and wallet controls pass the retained interaction suite. Ten-percent animation-panel replay remains unperformed. |
+
+`DESIGN.md` now describes stream visibility, recent-sample wording, sound activation and captured-session availability. `artifacts/interaction-results.json`, `axe-violations.json` and `design-probe.json` contain the revised results. The mobile and desktop screenshots were refreshed from the unmocked export's honest transport-failure state; the keyboard screenshot was refreshed from its validated practice flow. Additional corrected live-replay and stream screenshots were inspected in scratch. The contrast record below belongs to the initial build; the current probe separately remeasured the unchanged palette.
+
+Remaining limitations: real cross-origin service access in Chromium, WebKit/Safari, physical phone wallet handoff, screen-reader use, native zoom, actual passkey creation and a real signed Sepolia transaction are unverified. The local leaderboard/battery scope remains explicitly disclosed. No publication or network transaction was performed.
+
+## Initial accepted build record
+
 Date: 2026-11-06. Scope: the production static export in `dist/`, its source, all three game tabs, live/practice states, stream view, wallet picker, holder eligibility, score persistence, and proof submission UI. This is a worker report, not an independent certification.
 
 | Area                                                      | Final result                                                                                                        |

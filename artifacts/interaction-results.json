@@ -1,6 +1,26 @@
 {
   "results": [
     {
+      "name": "Published API schemas: idle readings, playable side games, NFT holder boost and predictor settlement",
+      "passed": true
+    },
+    {
+      "name": "Published source freshness: stale HTTP-200 telemetry voids an active live run",
+      "passed": true
+    },
+    {
+      "name": "Mid-rhythm sound toggle initializes once, plays tones, mutes and reuses its context",
+      "passed": true
+    },
+    {
+      "name": "Stream view preserves the canvas from either side-game tab at 320, 390, 680 and 1440",
+      "passed": true
+    },
+    {
+      "name": "Captured rhythm remains tappable after HTTP-503 history refresh; a new session requires recovery",
+      "passed": true
+    },
+    {
       "name": "First screen at 390: product, scene, and complete primary action",
       "passed": true
     },
